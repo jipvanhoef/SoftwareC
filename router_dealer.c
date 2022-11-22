@@ -45,7 +45,11 @@ int main (int argc, char * argv[])
     mqd_t               mq_fd_response;
     MQ_REQUEST_MESSAGE  request;
     MQ_RESPONSE_MESSAGE response;
-    struct mq_attr      attr;
+    struct mq_attr      attribute;
+
+    attribute.mq_maxmsg = 10;
+    attribute.mq_msgsize = sizeof (MQ_REQUEST_MESSAGE)
+    mq_fd_response = mq_open()
     //  * create the child processes (see process_test() and
     //    message_queue_test())
     //  * keep a dictionarry mapping clients' PIDs to a clientID
