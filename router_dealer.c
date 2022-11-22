@@ -29,6 +29,10 @@
 #include "settings.h"  
 #include "messages.h"
 
+static char Req_queue_33[80];
+static char S1_queue_33[80];
+static char S2_queue_33[80];
+static char Rsp_queue_33[80];
 
 int main (int argc, char * argv[])
 {
@@ -40,16 +44,24 @@ int main (int argc, char * argv[])
     // TODO:
     //  * create the message queues (see message_queue_test() in
     //    interprocess_basic.c)
-     pid_t               processID;      /* Process ID from fork() */
+    pid_t               processID;      /* Process ID from fork() */
     mqd_t               mq_fd_request;
     mqd_t               mq_fd_response;
+    mqd_t               mq_s1_request;
+    mqd_t               mq_s2_request;
     MQ_REQUEST_MESSAGE  request;
     MQ_RESPONSE_MESSAGE response;
     struct mq_attr      attribute;
 
     attribute.mq_maxmsg = 10;
-    attribute.mq_msgsize = sizeof (MQ_REQUEST_MESSAGE)
-    mq_fd_response = mq_open()
+    attribute.mq_msgsize = sizeof (MQ_REQUEST_MESSAGE);
+    mq_fd_request = mq_open(Req_queue_33,O_WRONLY | O_CREAT | O_EXCL);
+
+    mq_fd_response = mq_open(Rsp_queue_33,O_RDONLY | O_CREAT | O_EXCL);
+
+    mq_s1_request = mq_open(S1_queue_33,O_WRONLY | O_CREAT | O_EXCL);
+
+    mq_s2_request = mq_open(S2_queue_33,O_WRONLY | O_CREAT | O_EXCL);
     //  * create the child processes (see process_test() and
     //    message_queue_test())
     //  * keep a dictionarry mapping clients' PIDs to a clientID
