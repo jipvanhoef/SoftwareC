@@ -40,6 +40,12 @@ int main (int argc, char * argv[])
     // TODO:
     //  * create the message queues (see message_queue_test() in
     //    interprocess_basic.c)
+     pid_t               processID;      /* Process ID from fork() */
+    mqd_t               mq_fd_request;
+    mqd_t               mq_fd_response;
+    MQ_REQUEST_MESSAGE  request;
+    MQ_RESPONSE_MESSAGE response;
+    struct mq_attr      attr;
     //  * create the child processes (see process_test() and
     //    message_queue_test())
     //  * keep a dictionarry mapping clients' PIDs to a clientID
