@@ -2,8 +2,9 @@
  * Operating Systems  (2INCO)  Practical Assignment
  * Interprocess Communication
  *
- * STUDENT_NAME_1 (STUDENT_NR_1)
- * STUDENT_NAME_2 (STUDENT_NR_2)
+ * Jip van Hoef (1555960)
+ * Thymo Fieten (1528157)
+ * Koert Schoenmakers (1534963)
  *
  * Grading:
  * Your work will be evaluated based on the following criteria:
