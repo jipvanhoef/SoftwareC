@@ -13,17 +13,16 @@
 typedef struct
 {
     // a data structure with 3 members
-    int                     a;
-    int                     b;
-    char                    c;
+    int                     RequestID;
+    int                     ServiceID;
+    int                     data;
 } MQ_REQUEST_MESSAGE;
 
 typedef struct
 {
-    // a data structure with 3 members
-    int                     e;
-    char                    f[20];
-    char                    g[20];
+    // a data structure with 2 members
+    int                     RequestID;
+    int                     result;
 } MQ_RESPONSE_MESSAGE;
 #endif
 
