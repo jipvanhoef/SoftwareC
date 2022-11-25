@@ -34,6 +34,26 @@ static char S1_queue_33[80];
 static char S2_queue_33[80];
 static char Rsp_queue_33[80];
 
+
+static void
+getattr(mqd_t mq_fd)
+{
+    struct mq_attr attribute;
+    int            returnvalue;
+
+    returnvalue = mq_getattr(mq_fd,&attribute);
+    if (returnvalue == -1)
+    {
+        perror ("mq_getattr() failed");
+        exit (1);
+    }
+    fprintf (stderr, "%d: mqdes=%d max=%ld size=%ld nrof=%ld\n",
+                getpid(), 
+                mq_fd, attribute.mq_maxmsg, attribute.mq_msgsize, attribute.mq_curmsgs);
+}
+
+
+
 int main (int argc, char * argv[])
 {
     if (argc != 1)
@@ -45,23 +65,45 @@ int main (int argc, char * argv[])
     //  * create the message queues (see message_queue_test() in
     //    interprocess_basic.c)
     pid_t               processID;      /* Process ID from fork() */
+    //message queue descriptors
     mqd_t               mq_fd_request;
     mqd_t               mq_fd_response;
     mqd_t               mq_s1_request;
     mqd_t               mq_s2_request;
+    //create the request and response messages
     MQ_REQUEST_MESSAGE  request;
     MQ_RESPONSE_MESSAGE response;
+    //create the message queue attribute
     struct mq_attr      attribute;
 
+    //set the maximum number of messages that can be stored in the queue to 10
     attribute.mq_maxmsg = 10;
+    //set the maximum size of the message queue to the size of the request message
+    
     attribute.mq_msgsize = sizeof (MQ_REQUEST_MESSAGE);
-    mq_fd_request = mq_open(Req_queue_33,O_WRONLY | O_CREAT | O_EXCL);
+    //open the 3 request queues with their name and the write only property
+    mq_fd_request = mq_open(Req_queue_33,O_WRONLY | O_CREAT | O_EXCL,&attribute);
 
-    mq_fd_response = mq_open(Rsp_queue_33,O_RDONLY | O_CREAT | O_EXCL);
+    mq_s1_request = mq_open(S1_queue_33,O_WRONLY | O_CREAT | O_EXCL,&attribute);
 
-    mq_s1_request = mq_open(S1_queue_33,O_WRONLY | O_CREAT | O_EXCL);
+    mq_s2_request = mq_open(S2_queue_33,O_WRONLY | O_CREAT | O_EXCL,&attribute);
+    
+    //set the maximum number of messages that can be stored in the queue to 10
+    attribute.mq_maxmsg = 10;
+     //set the maximum size of the message queue to the size of the request message
+    attribute.mq_msgsize = sizeof (MQ_RESPONSE_MESSAGE);
 
-    mq_s2_request = mq_open(S2_queue_33,O_WRONLY | O_CREAT | O_EXCL);
+    //open the response message queue that is read only
+    mq_fd_response = mq_open(Rsp_queue_33,O_RDONLY | O_CREAT | O_EXCL,&attribute);
+    
+
+    //call the function that gets the attributes(not sure what it does or why we need it)
+    getattr(mq_fd_request);
+    getattr(mq_s1_request);
+    getattr(mq_s2_request);
+    getattr(mq_fd_response);
+
+    //TODO
     //  * create the child processes (see process_test() and
     //    message_queue_test())
     //  * keep a dictionarry mapping clients' PIDs to a clientID
