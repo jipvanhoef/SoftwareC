@@ -22,7 +22,7 @@ typedef struct
 {
     // a data structure with 2 members
     int                     RequestID;
-    int                     result
+    int                     result;
 } MQ_RESPONSE_MESSAGE;
 #endif
 
