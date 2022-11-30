@@ -106,7 +106,6 @@ int main (int argc, char * argv[])
     //TODO
     //  * create the child processes (see process_test() and
     //    message_queue_test())
-    //  * keep a dictionarry mapping clients' PIDs to a clientID
     //  * read requests from the Req queue and transfer them to services
     //  * read answers from services in the Rep queue and print them
     //  * wait until the clients have been stopped (see process_test())
