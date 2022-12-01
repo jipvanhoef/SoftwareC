@@ -28,6 +28,9 @@
 
 #include "settings.h"  
 #include "messages.h"
+#include "client.c"
+#include "worker_s1.c"
+#include "worker_s2.c"
 
 static char Req_queue_33[80];
 static char S1_queue_33[80];
@@ -95,7 +98,6 @@ int main (int argc, char * argv[])
 
     //open the response message queue that is read only
     mq_fd_response = mq_open(Rsp_queue_33,O_RDONLY | O_CREAT | O_EXCL,&attribute);
-    
 
     //call the function that gets the attributes(not sure what it does or why we need it)
     getattr(mq_fd_request);
@@ -106,6 +108,26 @@ int main (int argc, char * argv[])
     //TODO
     //  * create the child processes (see process_test() and
     //    message_queue_test())
+    pid_t c=fork();
+    if(c==0){
+        //client
+    }
+    for(int i=0; i<4; i++){
+        if (c>0){
+            pid_t c =fork();
+            if(c==0){
+                //worker1
+            }
+        }
+    }
+    for(int i=0; i<3; i++){
+        if(c>0){
+            pid_t c =fork();
+            if(c==0){
+                //worker2
+            }
+        }
+    }
     //  * read requests from the Req queue and transfer them to services
     //  * read answers from services in the Rep queue and print them
     //  * wait until the clients have been stopped (see process_test())
