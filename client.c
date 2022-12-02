@@ -57,15 +57,15 @@ int main (int argc, char * argv[])
         exit (1);
     }
 
-    // // Open the response queue
-    // mq_fd_response = mq_open (argv[2], O_RDONLY | O_CREAT | O_EXCL, 0600, &attr);
+    // Open the response queue
+    mq_fd_response = mq_open (argv[2], O_RDONLY | O_CREAT | O_EXCL, 0600, &attr);
 
-    // // Check if the response queue is opened
-    // if (mq_fd_response == -1)
-    // {
-    //     perror ("mq_open() failed");
-    //     exit (1);
-    // }
+    // Check if the response queue is opened
+    if (mq_fd_response == -1)
+    {
+        perror ("mq_open() failed");
+        exit (1);
+    }
 
     // Get the process ID
     processID = getpid();
