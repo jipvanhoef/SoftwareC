@@ -44,7 +44,9 @@ int main (int argc, char * argv[])
     mq_fd_response = mq_open(mq_name2, O_WRONLY); 
 
     //while there are messages in the queue retrieve them
-    while (mq_receive (mq_name1,(char *)&req,sizeof(req),0)> -1){
+    while (TRUE)
+    {
+        if (mq_receive (mq_name1,(char *)&req,sizeof(req),0)> -1){
         //sleep for 10000 ms
         rsleep(10000);
         //calculate the result of the service
@@ -55,6 +57,9 @@ int main (int argc, char * argv[])
         //send the response message
         mq_send(mq_fd_response, (char *)&rsp, sizeof(rsp),0);
     };
+    }
+    
+    
     //close the message queue
     mq_close(mq_fd_response);
     mq_close(mq_fd_request);

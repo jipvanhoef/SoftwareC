@@ -28,33 +28,12 @@
 
 #include "settings.h"  
 #include "messages.h"
-#include "client.c"
-#include "worker_s1.c"
-#include "worker_s2.c"
-
-static char Req_queue_33[80];
-static char S1_queue_33[80];
-static char S2_queue_33[80];
-static char Rsp_queue_33[80];
 
 
-static void
-getattr(mqd_t mq_fd)
-{
-    struct mq_attr attribute;
-    int            returnvalue;
-
-    returnvalue = mq_getattr(mq_fd,&attribute);
-    if (returnvalue == -1)
-    {
-        perror ("mq_getattr() failed");
-        exit (1);
-    }
-    fprintf (stderr, "%d: mqdes=%d max=%ld size=%ld nrof=%ld\n",
-                getpid(), 
-                mq_fd, attribute.mq_maxmsg, attribute.mq_msgsize, attribute.mq_curmsgs);
-}
-
+static char Req_queue_Fieten_Schoenmakers_vanHoef[80];
+static char S1_queue_Fieten_Schoenmakers_vanHoef[80];
+static char S2_queue_Fieten_Schoenmakers_vanHoef[80];
+static char Rsp_queue_Fieten_Schoenmakers_vanHoef[80];
 
 
 int main (int argc, char * argv[])
@@ -68,28 +47,32 @@ int main (int argc, char * argv[])
     //  * create the message queues (see message_queue_test() in
     //    interprocess_basic.c)
     pid_t               processID;      /* Process ID from fork() */
+
     //message queue descriptors
     mqd_t               mq_fd_request;
     mqd_t               mq_fd_response;
     mqd_t               mq_s1_request;
     mqd_t               mq_s2_request;
+
     //create the request and response messages
     MQ_REQUEST_MESSAGE  request;
     MQ_RESPONSE_MESSAGE response;
+    
     //create the message queue attribute
     struct mq_attr      attribute;
 
     //set the maximum number of messages that can be stored in the queue to 10
     attribute.mq_maxmsg = 10;
-    //set the maximum size of the message queue to the size of the request message
     
+    //set the maximum size of the message queue to the size of the request message
     attribute.mq_msgsize = sizeof (MQ_REQUEST_MESSAGE);
+    
     //open the 3 request queues with their name and the write only property
-    mq_fd_request = mq_open(Req_queue_33,O_WRONLY | O_CREAT | O_EXCL,&attribute);
+    mq_fd_request = mq_open(Req_queue_Fieten_Schoenmakers_vanHoef,O_WRONLY | O_CREAT | O_EXCL,&attribute);
 
-    mq_s1_request = mq_open(S1_queue_33,O_WRONLY | O_CREAT | O_EXCL,&attribute);
+    mq_s1_request = mq_open(S1_queue_Fieten_Schoenmakers_vanHoef,O_WRONLY | O_CREAT | O_EXCL,&attribute);
 
-    mq_s2_request = mq_open(S2_queue_33,O_WRONLY | O_CREAT | O_EXCL,&attribute);
+    mq_s2_request = mq_open(S2_queue_Fieten_Schoenmakers_vanHoef,O_WRONLY | O_CREAT | O_EXCL,&attribute);
     
     //set the maximum number of messages that can be stored in the queue to 10
     attribute.mq_maxmsg = 10;
@@ -97,36 +80,49 @@ int main (int argc, char * argv[])
     attribute.mq_msgsize = sizeof (MQ_RESPONSE_MESSAGE);
 
     //open the response message queue that is read only
-    mq_fd_response = mq_open(Rsp_queue_33,O_RDONLY | O_CREAT | O_EXCL,&attribute);
-
-    //call the function that gets the attributes(not sure what it does or why we need it)
-    getattr(mq_fd_request);
-    getattr(mq_s1_request);
-    getattr(mq_s2_request);
-    getattr(mq_fd_response);
+    mq_fd_response = mq_open(Rsp_queue_Fieten_Schoenmakers_vanHoef,O_RDONLY | O_CREAT | O_EXCL,&attribute);
 
     //TODO
     //  * create the child processes (see process_test() and
     //    message_queue_test())
+
+    
     pid_t c=fork();
     if(c==0){
-        //client
+        execlp ("client", "client", 2, Req_queue_Fieten_Schoenmakers_vanHoef);
     }
-    for(int i=0; i<4; i++){
+    for(int i=0; i<N_SERV1; i++){
         if (c>0){
             pid_t c =fork();
             if(c==0){
-                //worker1
+                
+                execlp("worker_s1", "worker_s1", S1_queue_Fieten_Schoenmakers_vanHoef, Rsp_queue_Fieten_Schoenmakers_vanHoef, NULL);
             }
         }
     }
-    for(int i=0; i<3; i++){
+    for(int i=0; i<N_SERV2; i++){
         if(c>0){
             pid_t c =fork();
             if(c==0){
-                //worker2
+                execlp("worker_s2", "worker_s2", 2, S2_queue_Fieten_Schoenmakers_vanHoef, Rsp_queue_Fieten_Schoenmakers_vanHoef, NULL);
             }
         }
+    }
+
+    if (mq_receive (Req_queue_Fieten_Schoenmakers_vanHoef,(char *)&request,sizeof(request),0)> -1){
+
+        if (request.ServiceID == 1){
+            mq_send(S1_queue_Fieten_Schoenmakers_vanHoef, (char *)&response, sizeof(response),0);
+        }else if (request.ServiceID == 2)
+        {
+            mq_send(S2_queue_Fieten_Schoenmakers_vanHoef, (char *)&response, sizeof(response),0);
+        }
+        
+        
+    }
+
+    if(mq_receive(Rsp_queue_Fieten_Schoenmakers_vanHoef,(char *)&response,sizeof(response)) >-1){
+        
     }
     //  * read requests from the Req queue and transfer them to services
     //  * read answers from services in the Rep queue and print them
