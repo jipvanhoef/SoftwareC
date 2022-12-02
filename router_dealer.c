@@ -63,19 +63,18 @@ int main (int argc, char * argv[])
 
     //set the maximum number of messages that can be stored in the queue to 10
     attribute.mq_maxmsg = 10;
-    
+
     //set the maximum size of the message queue to the size of the request message
     attribute.mq_msgsize = sizeof (MQ_REQUEST_MESSAGE);
     
     //open the 3 request queues with their name and the write only property
     mq_fd_request = mq_open(Req_queue_Fieten_Schoenmakers_vanHoef,O_WRONLY | O_CREAT | O_EXCL,&attribute);
-
     mq_s1_request = mq_open(S1_queue_Fieten_Schoenmakers_vanHoef,O_WRONLY | O_CREAT | O_EXCL,&attribute);
-
     mq_s2_request = mq_open(S2_queue_Fieten_Schoenmakers_vanHoef,O_WRONLY | O_CREAT | O_EXCL,&attribute);
     
     //set the maximum number of messages that can be stored in the queue to 10
     attribute.mq_maxmsg = 10;
+    
      //set the maximum size of the message queue to the size of the request message
     attribute.mq_msgsize = sizeof (MQ_RESPONSE_MESSAGE);
 
