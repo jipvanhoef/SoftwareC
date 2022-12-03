@@ -35,6 +35,8 @@ static char S1_queue_Fieten_Schoenmakers_vanHoef[80];
 static char S2_queue_Fieten_Schoenmakers_vanHoef[80];
 static char Rsp_queue_Fieten_Schoenmakers_vanHoef[80];
 
+int Children_Id[1+N_SERV1+N_SERV2];
+
 
 int main (int argc, char * argv[])
 {
@@ -84,17 +86,19 @@ int main (int argc, char * argv[])
     //TODO
     //  * create the child processes (see process_test() and
     //    message_queue_test())
+    printf("test");
 
     
     pid_t c=fork();
     if(c==0){
+        Children_Id[0] = getpid();
         execlp ("client", "client", 2, Req_queue_Fieten_Schoenmakers_vanHoef);
     }
     for(int i=0; i<N_SERV1; i++){
         if (c>0){
             pid_t c =fork();
             if(c==0){
-                
+                Children_Id[i+1] = getpid();
                 execlp("worker_s1", "worker_s1", S1_queue_Fieten_Schoenmakers_vanHoef, Rsp_queue_Fieten_Schoenmakers_vanHoef, NULL);
             }
         }
@@ -103,11 +107,14 @@ int main (int argc, char * argv[])
         if(c>0){
             pid_t c =fork();
             if(c==0){
+                Children_Id[i+1+N_SERV1] = getpid();
                 execlp("worker_s2", "worker_s2", 2, S2_queue_Fieten_Schoenmakers_vanHoef, Rsp_queue_Fieten_Schoenmakers_vanHoef, NULL);
             }
         }
     }
-
+    for(int i=0; i<1+N_SERV1+N_SERV2; i++){
+        printf("id from child %u is: %u", i,Children_Id[i]);
+    }
     if (mq_receive (Req_queue_Fieten_Schoenmakers_vanHoef,(char *)&request,sizeof(request),0)> -1){
 
         if (request.ServiceID == 1){
@@ -120,9 +127,9 @@ int main (int argc, char * argv[])
         
     }
 
-    if(mq_receive(Rsp_queue_Fieten_Schoenmakers_vanHoef,(char *)&response,sizeof(response)) >-1){
-        
-    }
+//    if(mq_receive(Rsp_queue_Fieten_Schoenmakers_vanHoef,(char *)&response,sizeof(response)) >-1){
+//        /
+//    }
     //  * read requests from the Req queue and transfer them to services
     //  * read answers from services in the Rep queue and print them
     //  * wait until the clients have been stopped (see process_test())
