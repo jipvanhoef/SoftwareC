@@ -30,7 +30,7 @@ static void rsleep (int t);
 
 int main (int argc, char * argv[])
 {
-    perror('client_init');
+    perror("client_init");
     // TODO:
     // (see message_queue_test() in interprocess_basic.c)
     //  * open the message queue (whose name is provided in the
@@ -44,11 +44,10 @@ int main (int argc, char * argv[])
     pid_t               processID;      /* Process ID from fork() */
     mqd_t               mq_fd_request;  /* Message queue file descriptor for requests*/
     MQ_REQUEST_MESSAGE  request;
-    struct mq_attr      attr;
-
     
     // Open the message queue
-    mq_fd_request = mq_open (argv[0], O_WRONLY | O_CREAT | O_EXCL, 0600, &attr);
+    mq_fd_request = mq_open (argv[0], O_WRONLY);
+    perror("mq_fd_request");
 
     // Check if the message queue is opened
     if (mq_fd_request == -1)
@@ -59,25 +58,25 @@ int main (int argc, char * argv[])
 
     // Get the process ID
     processID = getpid();
-    printf("Client process ID: %d", processID); // test
+    //printf("Client process ID: %d\n", processID); // test
 
     // Get the next job request
     while (getNextRequest(&request.RequestID, &request.data, &request.ServiceID) >-1)
     {
         // Send the request to the Req message queue
-        if (mq_send (mq_fd_request, (char *) &request, sizeof(request), 0) == -1)
+        if (mq_send (mq_fd_request, (char *) &request, sizeof(request), NULL) == -1)
         {
             perror ("mq_send() failed in client.c");
             exit (1);
         }
     }
 
-    // Check if the message queue is closed
-    if (mq_close (mq_fd_request) == -1)
-    {
-        perror ("mq_close() failed in client.c");
-        exit (1);
-    }
-    
+    // // Check if the message queue is closed
+    // if (mq_close (mq_fd_request) == -1)
+    // {
+    //     perror ("mq_close() failed in client.c");
+    //     exit (1);
+    // }
+    //printf("client done\n");
     return (0);
 }

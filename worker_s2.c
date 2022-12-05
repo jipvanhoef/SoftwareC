@@ -30,6 +30,7 @@ static void rsleep (int t);
 
 int main (int argc, char * argv[])
 {
+    printf("worker 2 activated");
     mqd_t               mq_fd_request;
     mqd_t               mq_fd_response;
     MQ_REQUEST_MESSAGE  req;
