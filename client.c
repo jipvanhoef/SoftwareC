@@ -30,6 +30,7 @@ static void rsleep (int t);
 
 int main (int argc, char * argv[])
 {
+    perror('client_init');
     // TODO:
     // (see message_queue_test() in interprocess_basic.c)
     //  * open the message queue (whose name is provided in the
@@ -52,20 +53,21 @@ int main (int argc, char * argv[])
     // Check if the message queue is opened
     if (mq_fd_request == -1)
     {
-        perror ("mq_open() failed");
+        perror ("mq_open() failed in client.c");
         exit (1);
     }
 
     // Get the process ID
     processID = getpid();
+    printf("Client process ID: %d", processID); // test
 
     // Get the next job request
-    while (getNextRequest(&request.RequestID,&request.data,&request.ServiceID) >-1)
+    while (getNextRequest(&request.RequestID, &request.data, &request.ServiceID) >-1)
     {
         // Send the request to the Req message queue
         if (mq_send (mq_fd_request, (char *) &request, sizeof(request), 0) == -1)
         {
-            perror ("mq_send() failed");
+            perror ("mq_send() failed in client.c");
             exit (1);
         }
     }
@@ -73,7 +75,7 @@ int main (int argc, char * argv[])
     // Check if the message queue is closed
     if (mq_close (mq_fd_request) == -1)
     {
-        perror ("mq_close() failed");
+        perror ("mq_close() failed in client.c");
         exit (1);
     }
     

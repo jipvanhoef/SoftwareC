@@ -29,11 +29,13 @@
 #include "settings.h"  
 #include "messages.h"
 
+#define NAMES        "Fieten_Schoenmakers_Van_hoef"
 
-static char Req_queue_Fieten_Schoenmakers_vanHoef[80];
-static char S1_queue_Fieten_Schoenmakers_vanHoef[80];
-static char S2_queue_Fieten_Schoenmakers_vanHoef[80];
-static char Rsp_queue_Fieten_Schoenmakers_vanHoef[80];
+
+static char Req_queue_33[80];
+static char S1_queue_33[80];
+static char S2_queue_33[80];
+static char Rsp_queue_33[80];
 
 int Children_Id[1+N_SERV1+N_SERV2];
 
@@ -68,11 +70,16 @@ int main (int argc, char * argv[])
 
     //set the maximum size of the message queue to the size of the request message
     attribute.mq_msgsize = sizeof (MQ_REQUEST_MESSAGE);
+     
+    sprintf (Req_queue_33, "/mq_request_%s_%d", NAMES, getpid());
+    sprintf (S1_queue_33, "/mq_request_%s_%d", NAMES, getpid());
+    sprintf (S2_queue_33, "/mq_request_%s_%d", NAMES, getpid());
+    sprintf (Rsp_queue_33, "/mq_response_%s_%d", NAMES, getpid());
     
     //open the 3 request queues with their name and the write only property
-    mq_fd_request = mq_open(Req_queue_Fieten_Schoenmakers_vanHoef,O_WRONLY | O_CREAT | O_EXCL,&attribute);
-    mq_s1_request = mq_open(S1_queue_Fieten_Schoenmakers_vanHoef,O_WRONLY | O_CREAT | O_EXCL,&attribute);
-    mq_s2_request = mq_open(S2_queue_Fieten_Schoenmakers_vanHoef,O_WRONLY | O_CREAT | O_EXCL,&attribute);
+    mq_fd_request = mq_open(Req_queue_33,O_WRONLY | O_CREAT | O_EXCL,&attribute);
+    mq_s1_request = mq_open(S1_queue_33,O_WRONLY | O_CREAT | O_EXCL,&attribute);
+    mq_s2_request = mq_open(S2_queue_33,O_WRONLY | O_CREAT | O_EXCL,&attribute);
     
     //set the maximum number of messages that can be stored in the queue to 10
     attribute.mq_maxmsg = 10;
@@ -81,55 +88,74 @@ int main (int argc, char * argv[])
     attribute.mq_msgsize = sizeof (MQ_RESPONSE_MESSAGE);
 
     //open the response message queue that is read only
-    mq_fd_response = mq_open(Rsp_queue_Fieten_Schoenmakers_vanHoef,O_RDONLY | O_CREAT | O_EXCL,&attribute);
+    mq_fd_response = mq_open(Rsp_queue_33,O_RDONLY | O_CREAT | O_EXCL,&attribute);
 
     //TODO
     //  * create the child processes (see process_test() and
     //    message_queue_test())
-    printf("test");
+
 
     
-    pid_t c=fork();
-    if(c==0){
+    pid_t c = fork();
+
+    if (c < 0){
+        perror("first fork() failed");
+        exit (1);
+    }
+    if (c==0) {
         Children_Id[0] = getpid();
-        execlp ("client", "client", 2, Req_queue_Fieten_Schoenmakers_vanHoef);
+        execlp ("./client", 2, Req_queue_33);
+        perror("execlp() client failed");
     }
-    for(int i=0; i<N_SERV1; i++){
-        if (c>0){
-            pid_t c =fork();
-            if(c==0){
+    for (int i=0; i<N_SERV1; i++) {
+        if (c>0) {
+            pid_t c = fork();
+            if (c < 0){
+                perror("fork() failed");
+                exit (1);
+            }
+            if(c==0) {
                 Children_Id[i+1] = getpid();
-                execlp("worker_s1", "worker_s1", S1_queue_Fieten_Schoenmakers_vanHoef, Rsp_queue_Fieten_Schoenmakers_vanHoef, NULL);
+                perror("fork w1");
+                execlp("./worker_s1",S1_queue_33, Rsp_queue_33, NULL);
+                perror("execlp() worker 1 failed");
             }
         }
     }
-    for(int i=0; i<N_SERV2; i++){
-        if(c>0){
-            pid_t c =fork();
-            if(c==0){
+    for(int i=0; i<N_SERV2; i++) {
+        if (c>0) {
+            pid_t c = fork();
+            if (c < 0){
+                perror("fork() failed");
+                exit (1);
+            }
+            if (c==0) {
                 Children_Id[i+1+N_SERV1] = getpid();
-                execlp("worker_s2", "worker_s2", 2, S2_queue_Fieten_Schoenmakers_vanHoef, Rsp_queue_Fieten_Schoenmakers_vanHoef, NULL);
+                execlp("./worker_s2", S2_queue_33, Rsp_queue_33, NULL);
+                perror("execlp() worker 2 failed");
             }
         }
     }
-    for(int i=0; i<1+N_SERV1+N_SERV2; i++){
-        printf("id from child %u is: %u", i,Children_Id[i]);
-    }
-    if (mq_receive (Req_queue_Fieten_Schoenmakers_vanHoef,(char *)&request,sizeof(request),0)> -1){
+ 
 
-        if (request.ServiceID == 1){
-            mq_send(S1_queue_Fieten_Schoenmakers_vanHoef, (char *)&response, sizeof(response),0);
-        }else if (request.ServiceID == 2)
-        {
-            mq_send(S2_queue_Fieten_Schoenmakers_vanHoef, (char *)&response, sizeof(response),0);
+
+    // for(int i=0; i<1+N_SERV1+N_SERV2; i++){
+    //     printf("id from child %u is: %u\n", i,Children_Id[i]);
+    // }
+    
+    while (mq_receive (Req_queue_33,(char *)&request, sizeof(request),0)> -1) {
+        if (request.ServiceID == 1) {
+            mq_send(S1_queue_33, (char *)&response, sizeof(response), 0);
+        } else if (request.ServiceID == 2) {
+            mq_send(S2_queue_33, (char *)&response, sizeof(response), 0);
         }
-        
-        
     }
-
-//    if(mq_receive(Rsp_queue_Fieten_Schoenmakers_vanHoef,(char *)&response,sizeof(response)) >-1){
-//        /
-//    }
+    
+    int i = 0;
+    if (mq_receive(Rsp_queue_33, (char *)&response, sizeof(response), 0) > -1) {
+        printf(i + "->" + response.result);
+        i++;
+    }
     //  * read requests from the Req queue and transfer them to services
     //  * read answers from services in the Rep queue and print them
     //  * wait until the clients have been stopped (see process_test())

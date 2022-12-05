@@ -44,7 +44,7 @@ int main (int argc, char * argv[])
     mq_fd_response = mq_open(mq_name2, O_WRONLY); 
 
     //while there are messages in the queue retrieve them
-    while (TRUE)
+    while (true)
     {
         if (mq_receive (mq_name1,(char *)&req,sizeof(req),0)> -1){
         //sleep for 10000 ms
