@@ -116,12 +116,30 @@ int main (int argc, char * argv[])
         //perror("starting client process");
         execlp ("./client",Req_queue_33, (char *)NULL);
         
+<<<<<<< HEAD
         //perror("execlp() client failed");
     }
     
 
     
 
+=======
+        perror("execlp() client failed");
+    }
+    waitpid (c, NULL, 0);
+
+    while (mq_receive (mq_fd_request,(char *)&request, sizeof(request),NULL)> -1) {
+        perror("received from request queue");
+        if (request.ServiceID == 1) {
+            mq_send(mq_s1_request, (char *)&response, sizeof(response), NULL);
+            perror("sending to worker 1 queue");
+        } else if (request.ServiceID == 2) {
+            mq_send(mq_s2_request, (char *)&response, sizeof(response), NULL);
+            perror("sending to worker 2 queue");
+        }
+    }
+    perror("finnished with sending");
+>>>>>>> ea3b8b706cd20c6a520f6d4f7a89d8e90ba71e77
     for (int i=0; i<N_SERV1; i++) {
         if (c>0) {
             pid_t c = fork();
