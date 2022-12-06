@@ -159,11 +159,11 @@ int main (int argc, char * argv[])
         //perror("waiting for worker");
         while (mq_receive (mq_fd_request,(char *)&request, sizeof(request),NULL) != -1){
             if (request.ServiceID == 1) {
-                mq_send(mq_s1_request, (char *)&response, sizeof(response), NULL);
+                mq_send(mq_s1_request, (char *)&request, sizeof(request), NULL);
                 messages_sent++;
                 //perror("sending to worker 1 queue");
             } else if (request.ServiceID == 2) {
-                mq_send(mq_s2_request, (char *)&response, sizeof(response), NULL);
+                mq_send(mq_s2_request, (char *)&request, sizeof(request), NULL);
                 messages_sent++;
                 //perror("sending to worker 2 queue");
             }
@@ -174,14 +174,24 @@ int main (int argc, char * argv[])
     //perror("starting to print messages");
     while (true)
     {
+        if (mq_getattr(mq_fd_response, &attr) == -1)
+        {
+            printf("mq_getattr error");
+            perror("get attributes");
+        }
+        //receive and print all messages
         if (mq_receive(mq_fd_response, (char *)&response, sizeof(response), NULL) != -1) {
             printf("%u -> %u\n",response.RequestID, response.result);
-            perror("printing");
+
+            //attributes and requestid's are both not working yet, 
+            //printf("messages left by attribute: %u messages left by counter %u\n ", attr.mq_curmsgs, messages_sent);
+            printf("max messages: %u\n", attr.mq_maxmsg);
+            //perror("printing");
             messages_sent--;
-            i++;
         }
         if (messages_sent <=0)
         {
+            //close and unlink all message queue's
             mq_close(mq_fd_request);
             mq_close(mq_s1_request);
             mq_close(mq_s2_request);
@@ -191,6 +201,7 @@ int main (int argc, char * argv[])
             mq_unlink(S1_queue_33);
             mq_unlink(S2_queue_33);
             mq_unlink(Rsp_queue_33);
+            //kill all workers
             for (int j = 1; j++;j<sizeof(Children_Id)/sizeof(Children_Id[0])){
                 kill(Children_Id[j],SIGTERM);
                 //perror("killed a child");
