@@ -38,23 +38,23 @@ int main (int argc, char * argv[])
     //open both of the queues
     mq_fd_request = mq_open(argv[0], O_RDONLY);
     mq_fd_response = mq_open(argv[1], O_WRONLY); 
-    perror("opened both queues in w1");
     //while there are messages in the queue retrieve them
-    // while (true)
-    // {
-        mq_receive (mq_fd_request,(char *)&req,sizeof(req),NULL);
-        perror("mq_receive worker 1");
-        //sleep for 1000 ms
-        rsleep(100);
-        //calculate the result of the service
-        int result = service(req.data);
-        //create the response message
-        rsp.RequestID = req.RequestID;
-        rsp.result = result;
-        //send the response message
-        mq_send(mq_fd_response, (char *)&rsp, sizeof(rsp),NULL);
-        perror("Worker trying to send in worker_1");
-    // };
+    while (true)
+    {
+        if (mq_receive (mq_fd_request,(char *)&req,sizeof(req),NULL)>-1){
+            //perror("mq_receive worker 1");
+            //sleep for 10000 ms
+            rsleep(10000);
+            //calculate the result of the service
+            int result = service(req.data);
+            //create the response message
+            rsp.RequestID = req.RequestID;
+            rsp.result = result;
+            //send the response message
+            mq_send(mq_fd_response, (char *)&rsp, sizeof(rsp),NULL);
+            //perror("Worker trying to send in worker_1");    
+        }   
+    };
 
     
     

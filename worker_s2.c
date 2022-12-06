@@ -35,19 +35,16 @@ int main (int argc, char * argv[])
     mqd_t               mq_fd_response;
     MQ_REQUEST_MESSAGE  req;
     MQ_RESPONSE_MESSAGE rsp;
-
-    //get the name of the request and response queues
-    char mq_name1 = (char *) argv[0];
-    char mq_name2 = (char *) argv[1];
     
     //open both of the queues
-    mq_fd_request = mq_open(mq_name1, O_RDONLY);
-    mq_fd_response = mq_open(mq_name2, O_WRONLY); 
+    mq_fd_request = mq_open(argv[0], O_RDONLY);
+    mq_fd_response = mq_open(argv[1], O_WRONLY); 
 
     //while there are messages in the queue retrieve them
     while (true)
     {
-        if (mq_receive (mq_name1,(char *)&req,sizeof(req),0)> -1){
+        mq_receive (mq_fd_request,(char *)&req,sizeof(req),NULL);
+        //perror("mq_receive worker 2");
         //sleep for 10000 ms
         rsleep(10000);
         //calculate the result of the service
@@ -56,14 +53,15 @@ int main (int argc, char * argv[])
         rsp.RequestID = req.RequestID;
         rsp.result = result;
         //send the response message
-        mq_send(mq_fd_response, (char *)&rsp, sizeof(rsp),0);
+        mq_send(mq_fd_response, (char *)&rsp, sizeof(rsp),NULL);
+        //perror("Worker trying to send in worker_2");
     };
-    }
+    
     
     
     //close the message queue
-    mq_close(mq_fd_response);
-    mq_close(mq_fd_request);
+    // mq_close(mq_fd_response);
+    // mq_close(mq_fd_request);
     // TODO:
     // (see message_queue_test() in interprocess_basic.c)
     //  * open the two message queues (whose names are provided in the

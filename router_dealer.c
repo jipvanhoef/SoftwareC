@@ -41,7 +41,8 @@ static char Rsp_queue_33[80];
 static void rsleep (int t);
 
 int Children_Id[1+N_SERV1+N_SERV2];
-
+int waiting = 0;
+int messages_sent = 0;
 
 int main (int argc, char * argv[])
 {
@@ -82,11 +83,11 @@ int main (int argc, char * argv[])
      
     
     //open the 3 request queues with their name and the write only property
-    mq_fd_request = mq_open(Req_queue_33,O_RDWR | O_CREAT | O_EXCL,0600 ,&attribute);
+    mq_fd_request = mq_open(Req_queue_33,O_RDWR | O_CREAT | O_EXCL |  O_NONBLOCK,0600 ,&attribute);
       
-    mq_s1_request = mq_open(S1_queue_33,O_RDWR | O_CREAT | O_EXCL, 0600, &attribute);
+    mq_s1_request = mq_open(S1_queue_33,O_RDWR | O_CREAT | O_EXCL |  O_NONBLOCK, 0600, &attribute);
    
-    mq_s2_request = mq_open(S2_queue_33,O_RDWR | O_CREAT | O_EXCL, 0600, &attribute);
+    mq_s2_request = mq_open(S2_queue_33,O_RDWR | O_CREAT | O_EXCL |  O_NONBLOCK, 0600, &attribute);
    
 
     //set the maximum number of messages that can be stored in the queue to 10
@@ -97,7 +98,7 @@ int main (int argc, char * argv[])
     
 
     //open the response message queue that is read only
-    mq_fd_response = mq_open(Rsp_queue_33,O_RDONLY | O_CREAT | O_EXCL,0600,&attribute);
+    mq_fd_response = mq_open(Rsp_queue_33,O_RDONLY | O_CREAT | O_EXCL| O_NONBLOCK,0600,&attribute);
 
     //TODO
     //  * create the child processes (see process_test() and
@@ -107,72 +108,90 @@ int main (int argc, char * argv[])
 
     c = fork();
     Children_Id[0] = c;
-
     if (c < 0){
-        perror("fork() client failed");
+        //perror("fork() client failed");
         exit (1);
     }
     else if (c==0) {
-        perror("starting client process");
+        //perror("starting client process");
         execlp ("./client",Req_queue_33, (char *)NULL);
         
-        perror("execlp() client failed");
+        //perror("execlp() client failed");
     }
-    waitpid (c, NULL, 0);
+    
 
-    while (mq_receive (mq_fd_request,(char *)&request, sizeof(request),NULL)> -1) {
-        if (request.ServiceID == 1) {
-            mq_send(mq_s1_request, (char *)&response, sizeof(response), NULL);
-            perror("sending to worker 1 queue");
-        } else if (request.ServiceID == 2) {
-            mq_send(mq_s2_request, (char *)&response, sizeof(response), NULL);
-        }
-    }
+    
+
     for (int i=0; i<N_SERV1; i++) {
         if (c>0) {
             pid_t c = fork();
             Children_Id[i+1] = c;
             if (c < 0){
-                perror("fork() w1 failed");
+                //perror("fork() w1 failed");
                 exit (1);
             }
             if(c==0) {
                 execlp("./worker_s1", S1_queue_33, Rsp_queue_33, NULL);
-                perror("execlp() worker 1 failed");
+                //perror("execlp() worker 1 failed");
                 exit(0);
             }
         }
     }
-    // for(int i=0; i<N_SERV2; i++) {
-    //     if (c>0) {
-    //         pid_t c = fork();
-//             Children_Id[i+1+N_SERV1] = c;
+    for(int i=0; i<N_SERV2; i++) {
+        if (c>0) {
+            pid_t c = fork();
+            Children_Id[i+1+N_SERV1] = c;
 
-    //         if (c < 0){
-    //             perror("fork() w2 failed");
-    //             exit (1);
-    //         }
-    //         if (c==0) {
-    //             execlp("worker_s2", "worker_s2", &S2_queue_33, &Rsp_queue_33, NULL);
-    //             perror("execlp() worker 2 failed");
-    //         }
-    //     }
-    // }
-    // sleep(3);
-    
-
-
-    for(int i=0; i<1+N_SERV1+N_SERV2; i++){
-        printf("id from child %u is: %u\n", i,Children_Id[i]);
+            if (c < 0){
+                //perror("fork() w2 failed");
+                exit (1);
+            }
+            if (c==0) {
+                execlp("./worker_s2", S2_queue_33, Rsp_queue_33, NULL);
+                //perror("execlp() worker 2 failed");
+            }
+        }
     }
-    
-    
-    
+
+    while(waiting != Children_Id[0]){
+        waiting = waitpid(Children_Id[0],NULL, WNOHANG);
+        //perror("waiting for worker");
+        while (mq_receive (mq_fd_request,(char *)&request, sizeof(request),NULL) != -1){
+            if (request.ServiceID == 1) {
+                mq_send(mq_s1_request, (char *)&response, sizeof(response), NULL);
+                messages_sent++;
+                //perror("sending to worker 1 queue");
+            } else if (request.ServiceID == 2) {
+                mq_send(mq_s2_request, (char *)&response, sizeof(response), NULL);
+                messages_sent++;
+                perror("sending to worker 2 queue");
+            }
+        }
+    }
+    perror("finished sending messages");
     int i = 0;
-    if (mq_receive(Rsp_queue_33, (char *)&response, sizeof(response), 0) > -1) {
-        printf(i + "->" + response.result);
-        i++;
+    perror("starting to print messages");
+    while (true)
+    {
+        if (mq_receive(mq_fd_response, (char *)&response, sizeof(response), NULL) != -1) {
+            printf("%d -> %d",i, response.result);
+            perror("printing");
+            messages_sent--;
+            i++;
+        }
+        if (messages_sent <=0)
+        {
+            for (int j = 1; j++;j<sizeof(Children_Id)/sizeof(Children_Id[0])){
+                kill(Children_Id[j],SIGTERM);
+                //perror("killed a child");
+            }
+            break;
+        }
+        
     }
+    
+    
+    
     //  * read requests from the Req queue and transfer them to services
     //  * read answers from services in the Rep queue and print them
     //  * wait until the clients have been stopped (see process_test())

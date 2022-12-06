@@ -30,7 +30,7 @@ static void rsleep (int t);
 
 int main (int argc, char * argv[])
 {
-    perror("client_init");
+    //perror("client_init");
     // TODO:
     // (see message_queue_test() in interprocess_basic.c)
     //  * open the message queue (whose name is provided in the
@@ -47,7 +47,7 @@ int main (int argc, char * argv[])
     
     // Open the message queue
     mq_fd_request = mq_open (argv[0], O_WRONLY);
-    perror("mq_fd_request");
+    //perror("mq_fd_request");
 
     // Check if the message queue is opened
     if (mq_fd_request == -1)
@@ -78,5 +78,6 @@ int main (int argc, char * argv[])
     //     exit (1);
     // }
     //printf("client done\n");
+    //perror("client done");
     return (0);
 }
