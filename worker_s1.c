@@ -47,11 +47,14 @@ int main (int argc, char * argv[])
             rsleep(10000);
             //calculate the result of the service
             int result = service(req.data);
+            //printf("w1 result: %u\n", result);
             //create the response message
             rsp.RequestID = req.RequestID;
             rsp.result = result;
             //send the response message
             mq_send(mq_fd_response, (char *)&rsp, sizeof(rsp),NULL);
+            //perror("sending w1");
+
             //perror("Worker trying to send in worker_1");    
         }   
     };

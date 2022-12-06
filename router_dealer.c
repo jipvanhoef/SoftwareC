@@ -42,7 +42,6 @@ static void rsleep (int t);
 
 int Children_Id[1+N_SERV1+N_SERV2];
 int waiting = 0;
-struct mq_attr attr;
 int messages_sent = 0;
 
 int main (int argc, char * argv[])
@@ -94,7 +93,7 @@ int main (int argc, char * argv[])
     //set the maximum number of messages that can be stored in the queue to 10
     attribute.mq_maxmsg = MQ_MAX_MESSAGES;
     
-     //set the maximum size of the message queue to the size of the request message
+     //set the maximum size of the message queue to the size of the response message
     attribute.mq_msgsize = sizeof (MQ_RESPONSE_MESSAGE);
     
 
@@ -172,20 +171,16 @@ int main (int argc, char * argv[])
     //printf("amount of messages sent: %u\n", messages_sent);
     int i = 0;
     //perror("starting to print messages");
+    //printf("messages left by attribute before printing: %u\n ", mq_getattr(mq_fd_response, attribute.mq_curmsgs));
+
     while (true)
     {
-        if (mq_getattr(mq_fd_response, &attr) == -1)
-        {
-            printf("mq_getattr error");
-            perror("get attributes");
-        }
         //receive and print all messages
         if (mq_receive(mq_fd_response, (char *)&response, sizeof(response), NULL) != -1) {
             printf("%u -> %u\n",response.RequestID, response.result);
 
             //attributes and requestid's are both not working yet, 
-            //printf("messages left by attribute: %u messages left by counter %u\n ", attr.mq_curmsgs, messages_sent);
-            printf("max messages: %u\n", attr.mq_maxmsg);
+            //printf("messages left by attribute: %u\n ", mq_getattr(mq_fd_response, attribute.mq_curmsgs));
             //perror("printing");
             messages_sent--;
         }
