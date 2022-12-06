@@ -42,6 +42,7 @@ static void rsleep (int t);
 
 int Children_Id[1+N_SERV1+N_SERV2];
 int waiting = 0;
+struct mq_attr attr;
 int messages_sent = 0;
 
 int main (int argc, char * argv[])
@@ -76,7 +77,7 @@ int main (int argc, char * argv[])
     struct mq_attr      attribute;
 
     //set the maximum number of messages that can be stored in the queue to 10
-    attribute.mq_maxmsg = 10;
+    attribute.mq_maxmsg = MQ_MAX_MESSAGES;
 
     //set the maximum size of the message queue to the size of the request message
     attribute.mq_msgsize = sizeof (MQ_REQUEST_MESSAGE);
@@ -116,30 +117,12 @@ int main (int argc, char * argv[])
         //perror("starting client process");
         execlp ("./client",Req_queue_33, (char *)NULL);
         
-<<<<<<< HEAD
         //perror("execlp() client failed");
     }
     
 
     
 
-=======
-        perror("execlp() client failed");
-    }
-    waitpid (c, NULL, 0);
-
-    while (mq_receive (mq_fd_request,(char *)&request, sizeof(request),NULL)> -1) {
-        perror("received from request queue");
-        if (request.ServiceID == 1) {
-            mq_send(mq_s1_request, (char *)&response, sizeof(response), NULL);
-            perror("sending to worker 1 queue");
-        } else if (request.ServiceID == 2) {
-            mq_send(mq_s2_request, (char *)&response, sizeof(response), NULL);
-            perror("sending to worker 2 queue");
-        }
-    }
-    perror("finnished with sending");
->>>>>>> ea3b8b706cd20c6a520f6d4f7a89d8e90ba71e77
     for (int i=0; i<N_SERV1; i++) {
         if (c>0) {
             pid_t c = fork();
@@ -182,23 +165,32 @@ int main (int argc, char * argv[])
             } else if (request.ServiceID == 2) {
                 mq_send(mq_s2_request, (char *)&response, sizeof(response), NULL);
                 messages_sent++;
-                perror("sending to worker 2 queue");
+                //perror("sending to worker 2 queue");
             }
         }
     }
-    perror("finished sending messages");
+    //printf("amount of messages sent: %u\n", messages_sent);
     int i = 0;
-    perror("starting to print messages");
+    //perror("starting to print messages");
     while (true)
     {
         if (mq_receive(mq_fd_response, (char *)&response, sizeof(response), NULL) != -1) {
-            printf("%d -> %d",i, response.result);
+            printf("%u -> %u\n",response.RequestID, response.result);
             perror("printing");
             messages_sent--;
             i++;
         }
         if (messages_sent <=0)
         {
+            mq_close(mq_fd_request);
+            mq_close(mq_s1_request);
+            mq_close(mq_s2_request);
+            mq_close(mq_fd_response);
+
+            mq_unlink(Req_queue_33);
+            mq_unlink(S1_queue_33);
+            mq_unlink(S2_queue_33);
+            mq_unlink(Rsp_queue_33);
             for (int j = 1; j++;j<sizeof(Children_Id)/sizeof(Children_Id[0])){
                 kill(Children_Id[j],SIGTERM);
                 //perror("killed a child");
