@@ -215,6 +215,7 @@ int main (int argc, char * argv[])
             //if so, then break out of the main while loop
             break;
         }
+    }
     
     //send the shutdown messages to all workers
     request.data = -1;

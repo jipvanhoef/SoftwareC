@@ -37,7 +37,7 @@ int main (int argc, char * argv[])
     
     // Open the request message queue
     mq_fd_request = mq_open(argv[0], O_RDONLY);
-    perror("mq_fd_request failed to open in worker_2")
+    perror("mq_fd_request failed to open in worker_2");
 
     // Check if the request message queue is opened
     if (mq_fd_request == -1) {
@@ -47,7 +47,7 @@ int main (int argc, char * argv[])
 
     // Open the response message queue
     mq_fd_response = mq_open(argv[1], O_WRONLY);
-    perror("mq_fd_response failed to open in worker_2")
+    perror("mq_fd_response failed to open in worker_2");
 
     // Check if the response message queue is opened
     if (mq_fd_response == -1) {
