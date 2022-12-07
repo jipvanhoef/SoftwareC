@@ -42,8 +42,9 @@ static void rsleep (int t);
 
 int Children_Id[1+N_SERV1+N_SERV2];
 int waiting = 0;
-int messages_sent = 0;
 int messages_received = 0;
+int responses_received = 0;
+int error_check = 0;
 
 int main (int argc, char * argv[])
 {
@@ -124,12 +125,12 @@ int main (int argc, char * argv[])
             pid_t c = fork();
             Children_Id[i+1] = c;
             if (c < 0){
-                //perror("fork() w1 failed");
+                perror("fork() w1 failed");
                 exit(0);
             }
             if(c == 0) {
                 execlp("./worker_s1", S1_queue_33, Rsp_queue_33, NULL); // Exectutes the worker_s1 process
-                //perror("execlp() worker 1 failed");
+                perror("execlp() worker 1 failed");
                 exit(0);
             }
         }
@@ -140,58 +141,79 @@ int main (int argc, char * argv[])
             pid_t c = fork();
             Children_Id[i+1+N_SERV1] = c;
             if (c < 0){
-                //perror("fork() w2 failed");
+                perror("fork() w2 failed");
                 exit(0);
             }
             if (c==0) {
                 execlp("./worker_s2", S2_queue_33, Rsp_queue_33, NULL); // Exectutes the worker_s2 process
-                //perror("execlp() worker 2 failed");
+                perror("execlp() worker 2 failed");
                 exit(0);
             }
         }
     }
-
+    //perror("finished creating children");
     // loop until the client send all the requests
-    while (waiting != Children_Id[0]) {
-        waiting = waitpid(Children_Id[0],NULL, WNOHANG);
+    while (true) {
+        //check if client is done
+        if(waiting == 0){
+            if(waitpid(Children_Id[0],NULL, WNOHANG) == Children_Id[0]){
+                waiting = 1;
+            }
+        }
         //perror("waiting for worker");
-        // sending requests from client queue to worker queue
-        while (mq_receive (mq_fd_request,(char *)&request, sizeof(request),NULL) != -1){
-            // perror("sending to worker queue"); attribute.mq_maxmsg
-            if (request.ServiceID == 1 && mq_getattr(mq_s1_request, attribute.mq_curmsgs) <= attribute.mq_maxmsg) { // Send to worker 1
+
+        //get current attributes of client and request queue
+        struct mq_attr mq_client_attr;
+        mq_getattr(mq_fd_request, &mq_client_attr);
+        struct mq_attr mq_s1_attr;
+        mq_getattr(mq_s1_request, &mq_s1_attr);
+        struct mq_attr mq_s2_attr;
+        mq_getattr(mq_s2_request, &mq_s2_attr);
+        //check if there are messages in the client request queue, and check if a new message will not exceed the maximum
+        if(
+            mq_client_attr.mq_curmsgs >0
+            && mq_s1_attr.mq_curmsgs < mq_s1_attr.mq_maxmsg
+            && mq_s2_attr.mq_curmsgs < mq_s2_attr.mq_maxmsg
+        ){
+            //pull a message and check if it works
+            error_check = mq_receive (mq_fd_request,(char *)&request, sizeof(request),NULL);
+            if(error_check >= 0){
+                messages_received++;
+            }
+            // Send to worker 1
+            if (request.ServiceID == 1) { 
                 mq_send(mq_s1_request, (char *)&request, sizeof(request), NULL);
-                messages_sent++;
                 //perror("sending to worker 1 queue");
-            } else if (request.ServiceID == 2 && mq_getattr(mq_s2_request, attribute.mq_curmsgs) <= attribute.mq_maxmsg) { // Send to worker 2
+                // Send to worker 2
+            } else if (request.ServiceID == 2) { 
                 mq_send(mq_s2_request, (char *)&request, sizeof(request), NULL);
-                messages_sent++;
                 //perror("sending to worker 2 queue");
             }
         }
-    }
-    
-    //printf("amount of messages sent: %u\n", messages_sent);
-    int i = 0;
-    //perror("starting to print messages");
-    //printf("messages left by attribute before printing: %u\n ", mq_getattr(mq_fd_response, attribute.mq_curmsgs));
-    
-    // loop until all the messages from the workers are received
-    while (true) {
-        //receive and print all messages
-        if (mq_receive(mq_fd_response, (char *)&response, sizeof(response), NULL) != -1) {
+        //check if there are any messages in the response queue.
+        struct mq_attr mq_response_attr;
+        mq_getattr(mq_fd_response, &mq_response_attr);
+        if(mq_response_attr.mq_curmsgs > 0){
+            //pulls a message and check if it works
+            error_check = mq_receive(mq_fd_response, (char *)&response, sizeof(response), NULL);
+            if(error_check >= 0){
+                responses_received++;
+                //perror("print response");
+            }
             printf("%u -> %u\n",response.RequestID, response.result);
-
-            //attributes and requestid's are both not working yet, 
-            //printf("messages left by attribute: %u\n ", mq_getattr(mq_fd_response, attribute.mq_curmsgs));
-            //perror("printing");
-            messages_sent--;
         }
-        if (messages_sent <= 0) { // if all messages are received, exit the loop
+        //check if there is nothing left in both queues, if the client is terminated and 
+        //if the amount of messages received is the same as the amount of messages printed on stdout
+        if(
+            mq_client_attr.mq_curmsgs == 0
+            && mq_response_attr.mq_curmsgs == 0
+            && waiting == 1
+            && messages_received == responses_received){
+            //if so, then break out of the main while loop
             break;
         }
-    }
-
-    //create the contensts of a kill message
+    
+    //send the shutdown messages to all workers
     request.data = -1;
     request.ServiceID = -1;
     request.RequestID = -1;
@@ -213,15 +235,6 @@ int main (int argc, char * argv[])
     mq_unlink(S1_queue_33);
     mq_unlink(S2_queue_33);
     mq_unlink(Rsp_queue_33);
-    
-    
-    //  * read requests from the Req queue and transfer them to services
-    //  * read answers from services in the Rep queue and print them
-    //  * wait until the clients have been stopped (see process_test())
-    //  * clean up the message queues (see message_queue_test())
-
-    // Important notice: make sure that the names of the message queues
-    // contain your goup number (to ensure uniqueness during testing)
-    
+ 
     return (0);
 }

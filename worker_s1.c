@@ -34,7 +34,6 @@ int main (int argc, char * argv[])
     mqd_t               mq_fd_response;
     MQ_REQUEST_MESSAGE  req;
     MQ_RESPONSE_MESSAGE rsp;
-    
     // TODO:
     // (see message_queue_test() in interprocess_basic.c)
     //  * open the two message queues (whose names are provided in the
@@ -54,7 +53,7 @@ int main (int argc, char * argv[])
     // Check if the request message queue is opened
     if (mq_fd_request == -1)
     {
-        // perror ("mq_open() for request failed in worker_s1.c");
+        perror ("mq_open() for request failed in worker_s1.c");
         exit (0);
     }
 
@@ -67,6 +66,7 @@ int main (int argc, char * argv[])
         // perror ("mq_open() for response queue failed in worker_s1.c");
         exit (0);
     }
+    //perror("starting loop");
 
     // While there are messages in the queue retrieve them
     while (true)
@@ -83,15 +83,12 @@ int main (int argc, char * argv[])
             rsleep(10000);
             //calculate the result of the service
             int result = service(req.data);
-            //printf("w1 result: %u\n", result);
             //create the response message
             rsp.RequestID = req.RequestID;
             rsp.result = result;
             //send the response message
             mq_send(mq_fd_response, (char *)&rsp, sizeof(rsp), NULL);
             //perror("sending w1");
-
-            //perror("Worker trying to send in worker_1");    
         }   
     }
 
