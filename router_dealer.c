@@ -111,12 +111,12 @@ int main (int argc, char * argv[])
     c = fork();
     Children_Id[0] = c;
     if (c < 0){
-        //perror("fork() client failed");
+        perror("fork() client failed");
         exit (1);
     } else if (c == 0) {
-        //perror("starting client process");
+        perror("starting client process");
         execlp ("./client", Req_queue_33, (char *)NULL); // Exectutes the client process
-        // perror("execlp() client failed");
+        perror("execlp() client failed");
     }
     
     // create the first worker process
@@ -151,7 +151,8 @@ int main (int argc, char * argv[])
             }
         }
     }
-    //perror("finished creating children");
+    perror("finished creating children");
+
     // loop until the client send all the requests
     while (true) {
         //check if client is done
@@ -160,7 +161,7 @@ int main (int argc, char * argv[])
                 waiting = 1;
             }
         }
-        //perror("waiting for worker");
+        perror("waiting for worker");
 
         //get current attributes of client and request queue
         struct mq_attr mq_client_attr;
@@ -169,25 +170,26 @@ int main (int argc, char * argv[])
         mq_getattr(mq_s1_request, &mq_s1_attr);
         struct mq_attr mq_s2_attr;
         mq_getattr(mq_s2_request, &mq_s2_attr);
+
         //check if there are messages in the client request queue, and check if a new message will not exceed the maximum
-        if(
-            mq_client_attr.mq_curmsgs >0
+        if (
+            mq_client_attr.mq_curmsgs > 0
             && mq_s1_attr.mq_curmsgs < mq_s1_attr.mq_maxmsg
             && mq_s2_attr.mq_curmsgs < mq_s2_attr.mq_maxmsg
-        ){
+        ) {
             //pull a message and check if it works
-            error_check = mq_receive (mq_fd_request,(char *)&request, sizeof(request),NULL);
-            if(error_check >= 0){
+            error_check = mq_receive (mq_fd_request,(char *)&request, sizeof(request), NULL);
+            if(error_check >= 0) {
                 messages_received++;
             }
             // Send to worker 1
             if (request.ServiceID == 1) { 
                 mq_send(mq_s1_request, (char *)&request, sizeof(request), NULL);
-                //perror("sending to worker 1 queue");
+                perror("sending to worker 1 queue");
                 // Send to worker 2
             } else if (request.ServiceID == 2) { 
                 mq_send(mq_s2_request, (char *)&request, sizeof(request), NULL);
-                //perror("sending to worker 2 queue");
+                perror("sending to worker 2 queue");
             }
         }
         //check if there are any messages in the response queue.
@@ -198,28 +200,30 @@ int main (int argc, char * argv[])
             error_check = mq_receive(mq_fd_response, (char *)&response, sizeof(response), NULL);
             if(error_check >= 0){
                 responses_received++;
-                //perror("print response");
+                perror("print response");
             }
             printf("%u -> %u\n",response.RequestID, response.result);
         }
         //check if there is nothing left in both queues, if the client is terminated and 
         //if the amount of messages received is the same as the amount of messages printed on stdout
-        if(
+        if (
             mq_client_attr.mq_curmsgs == 0
             && mq_response_attr.mq_curmsgs == 0
             && waiting == 1
-            && messages_received == responses_received){
+            && messages_received == responses_received
+        ) {
             //if so, then break out of the main while loop
             break;
         }
     }
+    
     //send the shutdown messages to all workers
     request.data = -1;
     request.ServiceID = -1;
     request.RequestID = -1;
     for (int i = 0; i<N_SERV1; i++) {
         mq_send(mq_s1_request, (char *)&request, sizeof(request), NULL);
-        //perror("killed a child");
+        perror("killed a child");
     }
     for (int i = 0; i<N_SERV2; i++) {
         mq_send(mq_s2_request, (char *)&request, sizeof(request), NULL);
