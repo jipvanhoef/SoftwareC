@@ -47,13 +47,13 @@ int main (int argc, char * argv[])
     
     // Open the message queue
     mq_fd_request = mq_open (argv[0], O_WRONLY);
-    //perror("mq_fd_request");
+    //perror("mq_fd_request failed to open");
 
     // Check if the message queue is opened
     if (mq_fd_request == -1)
     {
         perror ("mq_open() failed in client.c");
-        exit (1);
+        exit (0);
     }
 
     // Get the process ID
@@ -67,16 +67,17 @@ int main (int argc, char * argv[])
         if (mq_send (mq_fd_request, (char *) &request, sizeof(request), NULL) == -1)
         {
             perror ("mq_send() failed in client.c");
-            exit (1);
+            exit (0);
         }
     }
 
-    // // Check if the message queue is closed
-    // if (mq_close (mq_fd_request) == -1)
-    // {
-    //     perror ("mq_close() failed in client.c");
-    //     exit (1);
-    // }
+    // Check if the message queue is closed
+    if (mq_close (mq_fd_request) == -1)
+    {
+        perror ("mq_close() failed in client.c");
+        exit (0);
+    }
+
     //printf("client done\n");
     //perror("client done");
     return (0);
