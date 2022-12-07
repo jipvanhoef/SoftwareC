@@ -47,7 +47,7 @@ int main (int argc, char * argv[])
     
     // Open the message queue
     mq_fd_request = mq_open (argv[0], O_WRONLY);
-    //perror("mq_fd_request failed to open");
+    perror("mq_fd_request failed to open");
 
     // Check if the message queue is opened
     if (mq_fd_request == -1)
@@ -58,10 +58,9 @@ int main (int argc, char * argv[])
 
     // Get the process ID
     processID = getpid();
-    //printf("Client process ID: %d\n", processID); // test
 
     // Get the next job request
-    while (getNextRequest(&request.RequestID, &request.data, &request.ServiceID) >-1)
+    while (getNextRequest(&request.RequestID, &request.data, &request.ServiceID) > -1)
     {
         // Send the request to the Req message queue
         if (mq_send (mq_fd_request, (char *) &request, sizeof(request), NULL) == -1)
@@ -78,7 +77,5 @@ int main (int argc, char * argv[])
         exit (0);
     }
 
-    //printf("client done\n");
-    //perror("client done");
     return (0);
 }
